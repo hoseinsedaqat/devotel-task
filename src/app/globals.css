@@ -1,42 +1,162 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* styles/app.css */
+
+@font-face {
+  font-family: 'Vazir';
+  src: url('/fonts/Vazir.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html[lang="fa"] {
+  font-family: 'Vazir', sans-serif;
 }
 
-html,
+html[lang="fa"] {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Adjust layout for RTL if necessary */
+html[lang="fa"] body {
+  /* example adjustment */
+  font-family: "Vazir", sans-serif; /* you can load a Persian font */
+}
+
+
 body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f9fafb;
   margin: 0;
+  padding: 0;
+  color: #333;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+.dark body {
+  background-color: #1f2937; /* dark mode background */
+  color: #fff !important; /* light text for dark mode */
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+.dark body h2 {
+  color: #fff;
+}
+
+.container {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #222;
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+}
+
+input[type="text"]:focus {
+  border-color: #3b82f6; /* blue-500 */
+  outline: none;
+}
+
+.columns-toggle {
+  margin-bottom: 1rem;
+  color: #555;
+  user-select: none;
+}
+
+.columns-toggle label {
+  margin-right: 15px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+  background: #fff;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+th,
+td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+  font-size: 0.95rem;
+  color: #444;
+}
+
+th {
+  background-color: #fafafa;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  border-bottom: 2px solid #ddd;
+  transition: background-color 0.3s ease;
+}
+
+th.sorted {
+  background-color: #e0e7ff; /* light blue */
+}
+
+tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+tbody tr:hover {
+  background-color: #f1f5f9; /* light hover */
+}
+
+.no-results {
+  text-align: center;
+  padding: 1rem;
+  color: #888;
+  font-style: italic;
+}
+
+.pagination {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  color: #555;
+}
+
+.pagination button {
+  padding: 0.4rem 1rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s ease;
+}
+
+.pagination button:disabled {
+  background-color: #eee;
+  cursor: not-allowed;
+}
+
+.pagination button:not(:disabled):hover {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
 }
