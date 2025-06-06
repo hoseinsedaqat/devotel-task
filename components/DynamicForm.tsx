@@ -6,7 +6,7 @@ type FieldBase = {
   label: string;
   type: string;
   required?: boolean;
-  condition?: { field: string; value: any };
+  condition?: { field: string; value: string | number | boolean };
 };
 
 type SectionField = FieldBase & {
@@ -38,12 +38,12 @@ type FormSchema = {
 
 interface Props {
   insuranceType: string;
-  onSubmit: (data: Record<string, any>) => void;
+  onSubmit: (data: Record<string, unknown>) => void;
 }
 
 export default function DynamicForm({ insuranceType, onSubmit }: Props) {
   const [schema, setSchema] = useState<FormSchema | null>(null);
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [dynamicOptions, setDynamicOptions] = useState<Record<string, string[]>>({});
 
@@ -83,7 +83,7 @@ export default function DynamicForm({ insuranceType, onSubmit }: Props) {
   // Validation recursive for nested fields
   function validateFields(fields: Field[]): boolean {
     let valid = true;
-    let newErrors: Record<string, string> = {};
+    const newErrors: Record<string, string> = {};
     const validateRec = (flds: Field[]) => {
       for (const f of flds) {
         if (!shouldShow(f)) continue;
@@ -115,7 +115,11 @@ export default function DynamicForm({ insuranceType, onSubmit }: Props) {
       );
     }
 
-    const value = formData[field.name] ?? "";
+    const rawValue = formData[field.name];
+    const value =
+      typeof rawValue === "string" || typeof rawValue === "number"
+        ? rawValue
+        : "";
     const error = errors[field.name];
 
     const commonProps = {

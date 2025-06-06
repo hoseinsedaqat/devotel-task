@@ -6,14 +6,23 @@ import dynamic from "next/dynamic";
 const DynamicForm = dynamic(() => import("../../components/DynamicForm"), { ssr: false });
 const ApplicationList = dynamic(() => import("../../components/ApplicationList"), { ssr: false });
 
+type Application = {
+  insuranceType: "car" | "home" | "life" | "health";
+  [key: string]: string | number | "car" | "home" | "life" | "health";
+};
+
 export default function Home() {
   const [view, setView] = useState<"form" | "list">("form");
   const [insuranceType, setInsuranceType] = useState<"car" | "home" | "life" | "health">("car");
-  const [applications, setApplications] = useState<any[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
 
   // Add application with insuranceType included
-  const addApplication = (formData: any) => {
-    setApplications((apps) => [...apps, { ...formData, insuranceType }]);
+  const addApplication = (formData: Record<string, unknown>) => {
+    // Convert unknown values to string or number as needed
+    const sanitizedFormData: Omit<Application, "insuranceType"> = Object.fromEntries(
+      Object.entries(formData).map(([key, value]) => [key, typeof value === "string" || typeof value === "number" ? value : String(value)])
+    );
+    setApplications((apps) => [...apps, { ...sanitizedFormData, insuranceType }]);
     setView("list");
   };
 
@@ -28,7 +37,9 @@ export default function Home() {
           <select
             id="insuranceType"
             value={insuranceType}
-            onChange={(e) => setInsuranceType(e.target.value as any)}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+              setInsuranceType(e.target.value as "car" | "home" | "life" | "health")
+            }
             className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="car">Car</option>

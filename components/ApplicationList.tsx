@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 
 interface Props {
-  applications: Record<string, any>[];
+  applications: Record<string, unknown>[];
 }
 
 export default function ApplicationList({ applications }: Props) {

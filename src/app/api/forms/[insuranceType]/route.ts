@@ -5,6 +5,8 @@ export async function GET(request: NextRequest) {
   const segments = request.nextUrl.pathname.split("/");
   const insuranceType = segments[segments.length - 1]?.toLowerCase();
 
+  type InsuranceType = 'home' | 'car' | 'health' | 'life';
+
   const schemas = {
     home: {
       title: "Home Insurance",
@@ -147,7 +149,9 @@ export async function GET(request: NextRequest) {
     },
   };
 
-  const schema = insuranceType ? schemas[insuranceType] : null;
+  const schema = insuranceType && (insuranceType in schemas)
+    ? schemas[insuranceType as InsuranceType]
+    : null;
 
   if (!schema) {
     return NextResponse.json({ error: "Invalid insurance type" }, { status: 404 });
