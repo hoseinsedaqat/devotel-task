@@ -30,7 +30,7 @@ export default function Home() {
     <main className="p-8 max-w-4xl mx-auto bg-white shadow-lg rounded-md">
       <nav className="mb-8 flex flex-wrap items-center gap-4 justify-between">
         {/* Insurance Type Selector */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" id="insuranceTypeSelector">
           <label htmlFor="insuranceType" className="font-semibold text-gray-700">
             Insurance Type:
           </label>
@@ -49,7 +49,7 @@ export default function Home() {
           </select>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-3" id="insuranceTypeSelector">
           <button
             className={`px-5 py-2 rounded-md font-semibold transition-colors ${
               view === "form"

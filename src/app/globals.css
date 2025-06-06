@@ -5,14 +5,14 @@
 /* styles/app.css */
 
 @font-face {
-  font-family: 'Vazir';
-  src: url('/fonts/Vazir.woff2') format('woff2');
+  font-family: "Vazir";
+  src: url("/fonts/Vazir.woff2") format("woff2");
   font-weight: normal;
   font-style: normal;
 }
 
 html[lang="fa"] {
-  font-family: 'Vazir', sans-serif;
+  font-family: "Vazir", sans-serif;
 }
 
 html[lang="fa"] {
@@ -25,7 +25,6 @@ html[lang="fa"] body {
   /* example adjustment */
   font-family: "Vazir", sans-serif; /* you can load a Persian font */
 }
-
 
 body {
   font-family: Arial, sans-serif;
@@ -159,4 +158,42 @@ tbody tr:hover {
   background-color: #3b82f6;
   color: white;
   border-color: #3b82f6;
+}
+
+#insuranceTypeSelector {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 1rem 0;
+}
+
+button {
+  background: linear-gradient(135deg, #6b73ff 0%, #000dff 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  padding: 12px 28px;
+  margin: 0 0.7rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(107, 115, 255, 0.4);
+  transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+button:hover {
+  background: linear-gradient(135deg, #000dff 0%, #6b73ff 100%);
+  box-shadow: 0 6px 20px rgba(0, 13, 255, 0.6);
+  transform: translateY(-2px);
+}
+
+button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 13, 255, 0.5);
+}
+
+button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(107, 115, 255, 0.7);
 }
