@@ -1,12 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(
-  request: Request,
-  { params }: { params: { insuranceType: string } }
-) {
-  const { insuranceType } = params;
+export async function GET(request: NextRequest) {
+  // Extract the dynamic segment `[insuranceType]` from the URL
+  const segments = request.nextUrl.pathname.split("/");
+  const insuranceType = segments[segments.length - 1]?.toLowerCase();
 
-  // Example dynamic schemas with nested fields & conditions
   const schemas = {
     home: {
       title: "Home Insurance",
@@ -149,9 +147,11 @@ export async function GET(
     },
   };
 
-  const schema = schemas[insuranceType.toLowerCase()];
-  if (!schema)
+  const schema = insuranceType ? schemas[insuranceType] : null;
+
+  if (!schema) {
     return NextResponse.json({ error: "Invalid insurance type" }, { status: 404 });
+  }
 
   return NextResponse.json(schema);
 }
