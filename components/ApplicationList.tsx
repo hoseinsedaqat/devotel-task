@@ -1,20 +1,21 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import Link from 'next/link';
+import React, { useMemo, useState } from "react";
+import Link from "next/link";
 
 interface Props {
   applications: Record<string, unknown>[];
 }
+
+const PAGE_SIZE = 5;
 
 export default function ApplicationList({ applications }: Props) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
   const [page, setPage] = useState(1);
-  const PAGE_SIZE = 5;
 
-  // Get all unique keys from all application objects
+  // Extract all unique keys from the applications
   const allKeys = useMemo(() => {
     const keys = new Set<string>();
     applications.forEach((app) => {
@@ -23,69 +24,87 @@ export default function ApplicationList({ applications }: Props) {
     return Array.from(keys);
   }, [applications]);
 
-  // Keep track of visible columns (all visible by default)
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() =>
-    allKeys.reduce((acc, key) => {
-      acc[key] = true;
-      return acc;
-    }, {} as Record<string, boolean>)
+  // Manage visible columns
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(
+    () =>
+      allKeys.reduce((acc, key) => {
+        acc[key] = true;
+        return acc;
+      }, {} as Record<string, boolean>)
   );
 
-  // Filter applications by search on visible fields
-  const filtered = useMemo(() => {
+  // Filter applications by search term
+  const filteredApplications = useMemo(() => {
     return applications.filter((app) =>
       allKeys.some(
         (key) =>
           visibleColumns[key] &&
-          String(app[key] ?? "")
-            .toLowerCase()
-            .includes(search.toLowerCase())
+          String(app[key] ?? "").toLowerCase().includes(search.toLowerCase())
       )
     );
   }, [applications, search, visibleColumns, allKeys]);
 
   // Sort filtered applications
-  const sorted = useMemo(() => {
-    if (!sortKey) return filtered;
-    return [...filtered].sort((a, b) => {
-      if ((a[sortKey] ?? "") < (b[sortKey] ?? "")) return sortAsc ? -1 : 1;
-      if ((a[sortKey] ?? "") > (b[sortKey] ?? "")) return sortAsc ? 1 : -1;
-      return 0;
+  const sortedApplications = useMemo(() => {
+    if (!sortKey) return filteredApplications;
+
+    return [...filteredApplications].sort((a, b) => {
+      const aValue = String(a[sortKey] ?? "");
+      const bValue = String(b[sortKey] ?? "");
+      return sortAsc ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
     });
-  }, [filtered, sortKey, sortAsc]);
+  }, [filteredApplications, sortKey, sortAsc]);
 
-  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
-  const paged = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // Pagination logic
+  const totalPages = Math.ceil(sortedApplications.length / PAGE_SIZE);
+  const pagedApplications = sortedApplications.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  );
 
-  const toggleColumn = (col: string) =>
+  // Handlers
+  const toggleColumn = (col: string) => {
     setVisibleColumns((prev) => ({ ...prev, [col]: !prev[col] }));
+  };
 
   const handleSort = (col: string) => {
-    if (sortKey === col) setSortAsc(!sortAsc);
-    else {
+    if (sortKey === col) {
+      setSortAsc(!sortAsc);
+    } else {
       setSortKey(col);
       setSortAsc(true);
     }
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setPage(1);
+  };
+
+  // Styling helpers
+  const cellStyle = {
+    border: "1px solid #ccc",
+    padding: 8,
+    whiteSpace: "nowrap" as const,
   };
 
   return (
     <div style={{ maxWidth: 1000, margin: "auto" }}>
       <h2>Submitted Applications</h2>
       <p>
-        <Link href="/">← Back to Form</Link></p>
-      {/* Search input */}
+        <Link href="/">← Back to Form</Link>
+      </p>
+
+      {/* Search Input */}
       <input
         type="text"
         placeholder="Search..."
         value={search}
-        onChange={(e) => {
-          setSearch(e.target.value);
-          setPage(1);
-        }}
-        style={{ marginBottom: 10, width: "100%", padding: 8 ,marginTop: 10}}
+        onChange={handleSearchChange}
+        style={{ margin: "10px 0", width: "100%", padding: 8 }}
       />
 
-      {/* Column visibility toggles */}
+      {/* Column Toggles */}
       <div style={{ marginBottom: 10, overflowX: "auto" }}>
         <strong>Columns: </strong>
         {allKeys.map((key) => (
@@ -100,7 +119,7 @@ export default function ApplicationList({ applications }: Props) {
         ))}
       </div>
 
-      {/* Applications table */}
+      {/* Applications Table */}
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -112,11 +131,9 @@ export default function ApplicationList({ applications }: Props) {
                       key={key}
                       onClick={() => handleSort(key)}
                       style={{
-                        border: "1px solid #ccc",
-                        padding: 8,
+                        ...cellStyle,
                         cursor: "pointer",
                         backgroundColor: sortKey === key ? "#efefef" : undefined,
-                        whiteSpace: "nowrap",
                       }}
                     >
                       {key} {sortKey === key ? (sortAsc ? "▲" : "▼") : ""}
@@ -126,7 +143,7 @@ export default function ApplicationList({ applications }: Props) {
             </tr>
           </thead>
           <tbody>
-            {paged.length === 0 && (
+            {pagedApplications.length === 0 ? (
               <tr>
                 <td
                   colSpan={allKeys.filter((key) => visibleColumns[key]).length}
@@ -135,35 +152,34 @@ export default function ApplicationList({ applications }: Props) {
                   No results found.
                 </td>
               </tr>
+            ) : (
+              pagedApplications.map((app, i) => (
+                <tr key={i}>
+                  {allKeys.map(
+                    (key) =>
+                      visibleColumns[key] && (
+                        <td
+                          key={key}
+                          style={{
+                            ...cellStyle,
+                            maxWidth: 150,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                          title={String(app[key] ?? "")}
+                        >
+                          {String(app[key] ?? "")}
+                        </td>
+                      )
+                  )}
+                </tr>
+              ))
             )}
-            {paged.map((app, i) => (
-              <tr key={i}>
-                {allKeys.map(
-                  (key) =>
-                    visibleColumns[key] && (
-                      <td
-                        key={key}
-                        style={{
-                          border: "1px solid #ccc",
-                          padding: 8,
-                          whiteSpace: "nowrap",
-                          maxWidth: 150,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                        title={String(app[key] ?? "")}
-                      >
-                        {String(app[key] ?? "")}
-                      </td>
-                    )
-                )}
-              </tr>
-            ))}
           </tbody>
         </table>
       </div>
 
-      {/* Pagination */}
+      {/* Pagination Controls */}
       <div style={{ marginTop: 10, textAlign: "center" }}>
         <button
           onClick={() => setPage((p) => Math.max(p - 1, 1))}
