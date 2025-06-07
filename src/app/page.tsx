@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from 'next/link';
 
+
 // Dynamically import client components to avoid SSR issues
 const DynamicForm = dynamic(() => import("../../components/DynamicForm"), { ssr: false });
 const ApplicationList = dynamic(() => import("../../components/ApplicationList"), { ssr: false });

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from 'next/image';
 import Spinner_img from "../public/Spinner_img.gif";
+import { toast } from "react-toastify";
 
 type FieldType = {
   id: string;
@@ -347,7 +348,7 @@ export default function DynamicInsuranceForm({ formId }: DynamicInsuranceFormPro
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
     console.log("Submitting:", formValues);
-    alert("Form submitted, check console.");
+    toast.success("Application submitted successfully!",{position: "top-center",theme: "colored"});
   };
 
   function convertApiFormFieldToFieldType(field: ApiFormField): FieldType {
