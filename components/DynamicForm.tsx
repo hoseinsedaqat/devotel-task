@@ -1,194 +1,387 @@
 "use client";
-import React, { useState, useEffect } from "react";
 
-type FieldBase = {
-  name: string;
+import { useEffect, useState } from "react";
+
+type FieldType = {
+  id: string;
   label: string;
-  type: string;
+  type: "text" | "date" | "number" | "select" | "radio" | "checkbox" | "group";
   required?: boolean;
-  condition?: { field: string; value: string | number | boolean };
-};
-
-type SectionField = FieldBase & {
-  type: "section";
-  fields: Field[];
-};
-
-type SelectField = FieldBase & {
-  type: "select";
   options?: string[];
-  optionsApi?: string; // URL to fetch options dynamically
+  dynamicOptions?: {
+    endpoint: string;
+    dependsOn: string;
+  };
+  visibility?: {
+    dependsOn: string;
+    condition: "equals";
+    value: string;
+  };
+  validation?: {
+    min?: number;
+    max?: number;
+    pattern?: string;
+  };
+  fields?: FieldType[]; // for group type
 };
 
-type RadioField = FieldBase & {
-  type: "radio";
-  options: string[];
+type FieldProps = {
+  field: FieldType;
+  formValues: Record<string, unknown>;
+  setFormValues: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
+  dynamicOptionsCache: Record<string, string[]>;
 };
 
-type TextField = FieldBase & {
-  type: "text" | "number" | "textarea";
-};
+function Field({ field, formValues, setFormValues, dynamicOptionsCache }: FieldProps) {
+  const isVisible = () => {
+    if (!field.visibility) return true;
+    const { dependsOn, condition, value } = field.visibility;
+    const dependsValue = formValues[dependsOn];
+    if (condition === "equals") return dependsValue === value;
+    return true;
+  };
 
-type Field = SectionField | SelectField | RadioField | TextField;
+  const onChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target;
+    setFormValues((prev) => ({
+      ...prev,
+      [name]: type === "checkbox"
+        ? (e.target as HTMLInputElement).checked
+        : value,
+    }));
+  };
 
-type FormSchema = {
-  title: string;
-  fields: Field[];
-};
-
-interface Props {
-  insuranceType: string;
-  onSubmit: (data: Record<string, unknown>) => void;
-}
-
-export default function DynamicForm({ insuranceType, onSubmit }: Props) {
-  const [schema, setSchema] = useState<FormSchema | null>(null);
-  const [formData, setFormData] = useState<Record<string, unknown>>({});
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [dynamicOptions, setDynamicOptions] = useState<Record<string, string[]>>({});
-
-  useEffect(() => {
-    fetch(`/api/forms/${insuranceType}`).then((res) => res.json()).then(setSchema);
-  }, [insuranceType]);
-
-  useEffect(() => {
-    if (!schema) return;
-
-    // For all fields with optionsApi, fetch their options
-    schema.fields.forEach((field) => {
-      const fetchOptionsRecursively = (f: Field) => {
-        if ("optionsApi" in f && f.optionsApi) {
-          fetch(f.optionsApi)
-            .then((res) => res.json())
-            .then((options: string[]) =>
-              setDynamicOptions((prev) => ({ ...prev, [f.name]: options }))
-            );
-        }
-        if (f.type === "section") {
-          f.fields.forEach(fetchOptionsRecursively);
-        }
-      };
-      fetchOptionsRecursively(field);
-    });
-  }, [schema]);
-
-  if (!schema) return <p>Loading form...</p>;
-
-  // Check condition helper
-  function shouldShow(field: Field): boolean {
-    if (!field.condition) return true;
-    return formData[field.condition.field] === field.condition.value;
-  }
-
-  // Validation recursive for nested fields
-  function validateFields(fields: Field[]): boolean {
-    let valid = true;
-    const newErrors: Record<string, string> = {};
-    const validateRec = (flds: Field[]) => {
-      for (const f of flds) {
-        if (!shouldShow(f)) continue;
-        if (f.type === "section") {
-          validateRec(f.fields);
-        } else {
-          if (f.required && !formData[f.name]) {
-            newErrors[f.name] = "This field is required";
-            valid = false;
-          }
-        }
-      }
-    };
-    validateRec(fields);
-    setErrors(newErrors);
-    return valid;
-  }
-
-  // Render field recursive
-  const renderField = (field: Field) => {
-    if (!shouldShow(field)) return null;
-
-    if (field.type === "section") {
-      return (
-        <fieldset key={field.name} style={{ padding: "1em", border: "1px solid #ccc", marginBottom: "1em" }}>
-          <legend style={{ fontWeight: "bold" }}>{field.label}</legend>
-          {field.fields.map(renderField)}
-        </fieldset>
-      );
-    }
-
-    const rawValue = formData[field.name];
-    const value =
-      typeof rawValue === "string" || typeof rawValue === "number"
-        ? rawValue
-        : "";
-    const error = errors[field.name];
-
-    const commonProps = {
-      id: field.name,
-      value,
-      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
-        setFormData((prev) => ({ ...prev, [field.name]: e.target.value })),
-    };
-
+  if (field.type === "group") {
     return (
-      <div key={field.name} style={{ marginBottom: 12 }}>
-        <label htmlFor={field.name} style={{ display: "block", fontWeight: "bold" }}>
-          {field.label} {field.required && "*"}
-        </label>
-        {field.type === "text" || field.type === "number" ? (
+      <fieldset style={{ marginBottom: 20, padding: 10, border: "1px solid #ccc" }}>
+        <legend>{field.label}</legend>
+        {field.fields && field.fields.map((subField) => (
+          <Field
+            key={subField.id}
+            field={subField}
+            formValues={formValues}
+            setFormValues={setFormValues}
+            dynamicOptionsCache={dynamicOptionsCache}
+          />
+        ))}
+      </fieldset>
+    );
+  }
+
+  if (!isVisible()) return null;
+
+  let options = field.options || [];
+  if (field.dynamicOptions && dynamicOptionsCache[field.id]) {
+    options = dynamicOptionsCache[field.id];
+  }
+
+  switch (field.type) {
+    case "text":
+    case "date":
+    case "number":
+      return (
+        <div style={{ marginBottom: 15 }}>
+          <label htmlFor={field.id}>
+            {field.label} {field.required && "*"}
+          </label>
+          <br />
           <input
-            {...commonProps}
             type={field.type}
-            style={{ width: "100%", padding: "8px", borderColor: error ? "red" : "#ccc" }}
+            id={field.id}
+            name={field.id}
+            value={
+              typeof formValues[field.id] === "string" ||
+              typeof formValues[field.id] === "number"
+                ? (formValues[field.id] as string | number)
+                : ""
+            }
+            required={field.required}
+            min={field.validation?.min}
+            max={field.validation?.max}
+            pattern={field.validation?.pattern}
+            onChange={onChange}
           />
-        ) : field.type === "textarea" ? (
-          <textarea
-            {...commonProps}
-            rows={3}
-            style={{ width: "100%", padding: "8px", borderColor: error ? "red" : "#ccc" }}
-          />
-        ) : field.type === "select" ? (
+        </div>
+      );
+
+    case "select":
+      return (
+        <div style={{ marginBottom: 15 }}>
+          <label htmlFor={field.id}>
+            {field.label} {field.required && "*"}
+          </label>
+          <br />
           <select
-            {...commonProps}
-            style={{ width: "100%", padding: "8px", borderColor: error ? "red" : "#ccc" }}
+            id={field.id}
+            name={field.id}
+            value={
+              typeof formValues[field.id] === "string" ||
+              typeof formValues[field.id] === "number"
+                ? (formValues[field.id] as string | number)
+                : ""
+            }
+            required={field.required}
+            onChange={onChange}
           >
-            <option value="">-- Select --</option>
-            {(field.options || dynamicOptions[field.name] || []).map((opt) => (
+            <option value="">Select...</option>
+            {options.map((opt) => (
               <option key={opt} value={opt}>
                 {opt}
               </option>
             ))}
           </select>
-        ) : field.type === "radio" ? (
-          field.options.map((opt) => (
-            <label key={opt} style={{ marginRight: 12 }}>
+        </div>
+      );
+
+    case "radio":
+      return (
+        <div style={{ marginBottom: 15 }}>
+          <p>
+            {field.label} {field.required && "*"}
+          </p>
+          {options.map((opt) => (
+            <label key={opt} style={{ marginRight: 10 }}>
               <input
                 type="radio"
-                name={field.name}
+                name={field.id}
                 value={opt}
-                checked={formData[field.name] === opt}
-                onChange={() => setFormData((prev) => ({ ...prev, [field.name]: opt }))}
-              />{" "}
+                checked={formValues[field.id] === opt}
+                onChange={onChange}
+                required={field.required}
+              />
               {opt}
             </label>
-          ))
-        ) : null}
-        {error && <div style={{ color: "red" }}>{error}</div>}
-      </div>
-    );
+          ))}
+        </div>
+      );
+
+    case "checkbox":
+      return (
+        <div style={{ marginBottom: 15 }}>
+          <p>
+            {field.label} {field.required && "*"}
+          </p>
+          {options.map((opt) => (
+            <label key={opt} style={{ marginRight: 10 }}>
+              <input
+                type="checkbox"
+                name={field.id}
+                value={opt}
+                checked={Array.isArray(formValues[field.id] as unknown[]) && (formValues[field.id] as string[]).includes(opt)}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setFormValues((prev) => {
+                    const prevValues = Array.isArray(prev[field.id]) ? prev[field.id] as string[] : [];
+                    if (checked) {
+                      return { ...prev, [field.id]: [...prevValues, opt] };
+                    } else {
+                      return { ...prev, [field.id]: prevValues.filter((v) => v !== opt) };
+                    }
+                  });
+                }}
+              />
+              {opt}
+            </label>
+          ))}
+        </div>
+      );
+
+    default:
+      return null;
+  }
+}
+
+type DynamicInsuranceFormProps = {
+  formId: string;
+  onSubmit?: (values: Record<string, unknown>) => void;
+};
+
+export default function DynamicInsuranceForm({ formId }: DynamicInsuranceFormProps) {
+  interface ApiFormField {
+    id: string;
+    label: string;
+    type: string;
+    required?: boolean;
+    options?: string[];
+    dynamicOptions?: {
+      endpoint: string;
+      dependsOn: string;
+    };
+    visibility?: {
+      dependsOn: string;
+      condition: string;
+      value: string;
+    };
+    validation?: {
+      min?: number;
+      max?: number;
+      pattern?: string;
+    };
+    fields?: ApiFormField[];
+  }
+
+  interface ApiForm {
+    formId: string;
+    title: string;
+    fields: ApiFormField[];
+  }
+
+  const [form, setForm] = useState<ApiForm | null>(null);
+  const [formValues, setFormValues] = useState<Record<string, unknown>>({});
+  const [dynamicOptionsCache, setDynamicOptionsCache] = useState({});
+
+  useEffect(() => {
+    fetch("https://assignment.devotel.io/api/insurance/forms")
+      .then((res) => res.json())
+      .then((data) => {
+        interface ApiFormField {
+          id: string;
+          label: string;
+          type: string;
+          required?: boolean;
+          options?: string[];
+          dynamicOptions?: {
+            endpoint: string;
+            dependsOn: string;
+          };
+          visibility?: {
+            dependsOn: string;
+            condition: string;
+            value: string;
+          };
+          validation?: {
+            min?: number;
+            max?: number;
+            pattern?: string;
+          };
+          fields?: ApiFormField[];
+        }
+
+        interface ApiForm {
+          formId: string;
+          title: string;
+          fields: ApiFormField[];
+        }
+
+        const selected: ApiForm | undefined = (data as ApiForm[]).find((f) => f.formId === formId);
+        setForm(selected || null);
+
+        if (selected) {
+          const initValues: Record<string, string> = {};
+            interface TraverseField {
+            id: string;
+            type: string;
+            fields?: TraverseField[];
+            }
+
+            const traverse = (fields: TraverseField[]): void => {
+            fields.forEach((field: TraverseField) => {
+              if (field.type === "group" && field.fields) {
+              traverse(field.fields);
+              } else {
+              initValues[field.id] = "";
+              }
+            });
+            };
+          traverse(selected.fields);
+          setFormValues(initValues);
+        }
+      });
+  }, [formId]);
+
+  useEffect(() => {
+    if (!form) return;
+
+    const dynamicFields: ApiFormField[] = [];
+
+    interface FindDynamicField {
+      id: string;
+      type: string;
+      fields?: FindDynamicField[];
+      dynamicOptions?: {
+      endpoint: string;
+      dependsOn: string;
+      };
+    }
+
+    const findDynamicFields = (fields: FindDynamicField[]): void => {
+      fields.forEach((field: FindDynamicField) => {
+      if (field.type === "group" && field.fields) findDynamicFields(field.fields);
+      else if (field.dynamicOptions) dynamicFields.push(field as ApiFormField);
+      });
+    };
+
+    findDynamicFields(form.fields);
+
+    dynamicFields.forEach((field) => {
+      if (!field.dynamicOptions) {
+        setDynamicOptionsCache((prev) => ({ ...prev, [field.id]: [] }));
+        return;
+      }
+      const dependsOnValue = formValues[field.dynamicOptions.dependsOn];
+      if (!dependsOnValue) {
+        setDynamicOptionsCache((prev) => ({ ...prev, [field.id]: [] }));
+        return;
+      }
+      const url = `${field.dynamicOptions.endpoint}?${field.dynamicOptions.dependsOn}=${dependsOnValue}`;
+
+      fetch(url)
+        .then((res) => res.json())
+        .then((options) => {
+          setDynamicOptionsCache((prev) => ({ ...prev, [field.id]: options }));
+        })
+        .catch(() => {
+          setDynamicOptionsCache((prev) => ({ ...prev, [field.id]: [] }));
+        });
+    });
+  }, [form, formValues]);
+
+  if (!form) return <p>Loading or form not found...</p>;
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
+    e.preventDefault();
+    console.log("Submitting:", formValues);
+    alert("Form submitted, check console.");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateFields(schema.fields)) return;
-    onSubmit(formData);
-    setFormData({});
-    setErrors({});
-  };
+  function convertApiFormFieldToFieldType(field: ApiFormField): FieldType {
+    return {
+      id: field.id,
+      label: field.label,
+      type: field.type as FieldType["type"],
+      required: field.required,
+      options: field.options,
+      dynamicOptions: field.dynamicOptions,
+      visibility: field.visibility
+        ? {
+            dependsOn: field.visibility.dependsOn,
+            condition: field.visibility.condition as "equals",
+            value: field.visibility.value,
+          }
+        : undefined,
+      validation: field.validation,
+      fields: field.fields
+        ? field.fields.map(convertApiFormFieldToFieldType)
+        : undefined,
+    };
+  }
 
   return (
     <form onSubmit={handleSubmit} style={{ maxWidth: 600, margin: "auto" }}>
-      <h2>{schema.title}</h2>
-      {schema.fields.map(renderField)}
+      <h2>{form.title}</h2>
+
+      {form.fields.map((field) => (
+        <Field
+          key={field.id}
+          field={convertApiFormFieldToFieldType(field)}
+          formValues={formValues}
+          setFormValues={setFormValues}
+          dynamicOptionsCache={dynamicOptionsCache}
+        />
+      ))}
+
       <button type="submit" style={{ marginTop: 20, padding: "8px 16px" }}>
         Submit
       </button>

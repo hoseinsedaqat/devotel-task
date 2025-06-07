@@ -1,29 +1,51 @@
 "use client";
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
+import Link from 'next/link';
 
 // Dynamically import client components to avoid SSR issues
 const DynamicForm = dynamic(() => import("../../components/DynamicForm"), { ssr: false });
 const ApplicationList = dynamic(() => import("../../components/ApplicationList"), { ssr: false });
 
 type Application = {
-  insuranceType: "car" | "home" | "life" | "health";
-  [key: string]: string | number | "car" | "home" | "life" | "health";
+  insuranceType: "health_insurance_application" | "home_insurance_application" | "car_insurance_application";
+  [key: string]: string | number | "car" | "home" | "health";
 };
 
 export default function Home() {
   const [view, setView] = useState<"form" | "list">("form");
-  const [insuranceType, setInsuranceType] = useState<"car" | "home" | "life" | "health">("car");
+  const [insuranceType, setInsuranceType] = useState<"health_insurance_application" | "home_insurance_application" | "car_insurance_application">("car_insurance_application");
   const [applications, setApplications] = useState<Application[]>([]);
 
   // Add application with insuranceType included
-  const addApplication = (formData: Record<string, unknown>) => {
-    // Convert unknown values to string or number as needed
-    const sanitizedFormData: Omit<Application, "insuranceType"> = Object.fromEntries(
-      Object.entries(formData).map(([key, value]) => [key, typeof value === "string" || typeof value === "number" ? value : String(value)])
-    );
-    setApplications((apps) => [...apps, { ...sanitizedFormData, insuranceType }]);
-    setView("list");
+  const addApplication = async (formData: Record<string, unknown>) => {
+    try {
+      const response = await fetch("https://assignment.devotel.io/api/insurance/forms/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error?.message || "Submission failed");
+      }
+
+      const result = await response.json();
+      setApplications((apps) => [...apps, { ...formData, insuranceType }]);
+      setView("list");
+      return result;
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error submitting application:", error);
+        throw error;
+      } else {
+        console.error("Error submitting application:", error);
+        throw new Error("An unknown error occurred");
+      }
+    }
   };
 
   return (
@@ -38,45 +60,35 @@ export default function Home() {
             id="insuranceType"
             value={insuranceType}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-              setInsuranceType(e.target.value as "car" | "home" | "life" | "health")
+              setInsuranceType(e.target.value as "car_insurance_application" | "health_insurance_application" | "home_insurance_application")
             }
             className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="car">Car</option>
-            <option value="home">Home</option>
-            <option value="life">Life</option>
-            <option value="health">Health</option>
+            <option value="car_insurance_application">Car</option>
+            <option value="home_insurance_application">Home</option>
+            <option value="health_insurance_application">Health</option>
           </select>
         </div>
 
         <div className="flex gap-3" id="insuranceTypeSelector">
-          <button
-            className={`px-5 py-2 rounded-md font-semibold transition-colors ${
-              view === "form"
-                ? "bg-blue-600 text-white hover:bg-blue-700"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
-            onClick={() => setView("form")}
+          <Link
+            href={`/`}
+            // onClick={() => setView("form")}
           >
             Apply
-          </button>
-          <button
-            className={`px-5 py-2 rounded-md font-semibold transition-colors ${
-              view === "list"
-                ? "bg-blue-600 text-white hover:bg-blue-700"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
-            onClick={() => setView("list")}
-            disabled={applications.length === 0}
+          </Link>
+          <Link
+            // onClick={() => setView("list")}
+            href={'/applications'}
           >
-            Applications ({applications.length})
-          </button>
+            Applications
+          </Link>
         </div>
       </nav>
 
       {/* Show form or application list */}
       <section>
-        {view === "form" && <DynamicForm insuranceType={insuranceType} onSubmit={addApplication} />}
+        {view === "form" && <DynamicForm formId={insuranceType} onSubmit={addApplication} />}
         {view === "list" && <ApplicationList applications={applications} />}
       </section>
     </main>

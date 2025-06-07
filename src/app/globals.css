@@ -168,7 +168,7 @@ tbody tr:hover {
   margin: 1rem 0;
 }
 
-button {
+button,a {
   background: linear-gradient(135deg, #6b73ff 0%, #000dff 100%);
   border: none;
   border-radius: 8px;
@@ -182,18 +182,22 @@ button {
   transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
 }
 
-button:hover {
+button:hover,a:hover {
   background: linear-gradient(135deg, #000dff 0%, #6b73ff 100%);
   box-shadow: 0 6px 20px rgba(0, 13, 255, 0.6);
   transform: translateY(-2px);
 }
 
-button:active {
+button:active,a:active {
   transform: translateY(0);
   box-shadow: 0 2px 8px rgba(0, 13, 255, 0.5);
 }
 
-button:focus {
+button:focus,a:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(107, 115, 255, 0.7);
+}
+
+a {
+  text-decoration: none;
 }

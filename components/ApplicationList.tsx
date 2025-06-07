@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import Link from 'next/link';
 
 interface Props {
   applications: Record<string, unknown>[];
@@ -70,7 +71,8 @@ export default function ApplicationList({ applications }: Props) {
   return (
     <div style={{ maxWidth: 1000, margin: "auto" }}>
       <h2>Submitted Applications</h2>
-
+      <p>
+        <Link href="/">← Back to Form</Link></p>
       {/* Search input */}
       <input
         type="text"
@@ -80,7 +82,7 @@ export default function ApplicationList({ applications }: Props) {
           setSearch(e.target.value);
           setPage(1);
         }}
-        style={{ marginBottom: 10, width: "100%", padding: 8 }}
+        style={{ marginBottom: 10, width: "100%", padding: 8 ,marginTop: 10}}
       />
 
       {/* Column visibility toggles */}
