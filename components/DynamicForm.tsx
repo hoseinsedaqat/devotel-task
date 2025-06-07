@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import Spinner_img from "../public/Spinner_img.gif";
 import { toast } from "react-toastify";
 
@@ -125,7 +126,7 @@ function Field({ field, formValues, setFormValues, dynamicOptionsCache }: FieldP
                 ? (formValues[field.id] as string | number)
                 : ""
             }
-            required={field.required}
+            // required={field.required}
             onChange={onChange}
           >
             <option value="">Select...</option>
@@ -230,11 +231,11 @@ export default function DynamicInsuranceForm({ formId }: DynamicInsuranceFormPro
     title: string;
     fields: ApiFormField[];
   }
-
   const [form, setForm] = useState<ApiForm | null>(null);
   const [formValues, setFormValues] = useState<Record<string, unknown>>({});
   const [dynamicOptionsCache, setDynamicOptionsCache] = useState({});
-
+   const router = useRouter();
+  
   useEffect(() => {
     fetch("https://assignment.devotel.io/api/insurance/forms")
       .then((res) => res.json())
@@ -349,6 +350,7 @@ export default function DynamicInsuranceForm({ formId }: DynamicInsuranceFormPro
     e.preventDefault();
     console.log("Submitting:", formValues);
     toast.success("Application submitted successfully!",{position: "top-center",theme: "colored"});
+    router.push("/applications");
   };
 
   function convertApiFormFieldToFieldType(field: ApiFormField): FieldType {
