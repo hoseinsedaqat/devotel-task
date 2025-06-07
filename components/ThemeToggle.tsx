@@ -40,10 +40,6 @@ export default function ThemeToggle() {
         fontWeight: "600",
         boxShadow: "0 2px 8px rgba(102,126,234,0.7)",
         transition: "background-color 0.3s ease",
-        position: "fixed",
-        top: 16,
-        right: 16,
-        zIndex: 1000,
       }}
     >
       {theme === "dark" ? "Light Mode" : "Dark Mode"}

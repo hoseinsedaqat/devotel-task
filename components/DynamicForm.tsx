@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Spinner_img from "../public/Spinner_img.gif";
 import { toast } from "react-toastify";
+import { useSelector } from "react-redux";
 
 // --- Type Definitions ---
 type FieldType = {
@@ -27,7 +28,12 @@ type FieldProps = {
 };
 
 // --- Helper Components ---
-const Field = ({ field, formValues, setFormValues, dynamicOptionsCache }: FieldProps) => {
+const Field = ({
+  field,
+  formValues,
+  setFormValues,
+  dynamicOptionsCache,
+}: FieldProps) => {
   const isVisible = () => {
     if (!field.visibility) return true;
     const { dependsOn, condition, value } = field.visibility;
@@ -38,7 +44,10 @@ const Field = ({ field, formValues, setFormValues, dynamicOptionsCache }: FieldP
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
-    const checked = type === "checkbox" && "checked" in e.target ? (e.target as HTMLInputElement).checked : undefined;
+    const checked =
+      type === "checkbox" && "checked" in e.target
+        ? (e.target as HTMLInputElement).checked
+        : undefined;
     setFormValues((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -47,7 +56,9 @@ const Field = ({ field, formValues, setFormValues, dynamicOptionsCache }: FieldP
 
   if (field.type === "group") {
     return (
-      <fieldset style={{ marginBottom: 20, padding: 10, border: "1px solid #ccc" }}>
+      <fieldset
+        style={{ marginBottom: 20, padding: 10, border: "1px solid #ccc" }}
+      >
         <legend>{field.label}</legend>
         {field.fields?.map((subField) => (
           <Field
@@ -73,7 +84,8 @@ const Field = ({ field, formValues, setFormValues, dynamicOptionsCache }: FieldP
     name: field.id,
     onChange: handleChange,
     value:
-      typeof formValues[field.id] === "string" || typeof formValues[field.id] === "number"
+      typeof formValues[field.id] === "string" ||
+      typeof formValues[field.id] === "number"
         ? (formValues[field.id] as string | number)
         : "",
   };
@@ -101,9 +113,7 @@ const Field = ({ field, formValues, setFormValues, dynamicOptionsCache }: FieldP
     case "select":
       return (
         <div style={{ marginBottom: 15 }}>
-          <label htmlFor={field.id}>
-            {field.label}
-          </label>
+          <label htmlFor={field.id}>{field.label}</label>
           <br />
           <select {...commonInputProps}>
             <option value="">Select...</option>
@@ -194,7 +204,10 @@ const convertToFieldType = (field: ApiFormField): FieldType => ({
   fields: field.fields?.map(convertToFieldType),
 });
 
-const traverseFields = (fields: ApiFormField[], init: Record<string, unknown>) => {
+const traverseFields = (
+  fields: ApiFormField[],
+  init: Record<string, unknown>
+) => {
   fields.forEach((field) => {
     if (field.type === "group" && field.fields) {
       traverseFields(field.fields, init);
@@ -216,11 +229,19 @@ const findDynamicFields = (fields: ApiFormField[]): ApiFormField[] => {
   return result;
 };
 
-export default function DynamicInsuranceForm({ formId }: DynamicInsuranceFormProps) {
+export default function DynamicInsuranceForm({
+  formId,
+}: DynamicInsuranceFormProps) {
   const [form, setForm] = useState<ApiForm | null>(null);
   const [formValues, setFormValues] = useState<Record<string, unknown>>({});
-  const [dynamicOptionsCache, setDynamicOptionsCache] = useState<Record<string, string[]>>({});
+  const [dynamicOptionsCache, setDynamicOptionsCache] = useState<
+    Record<string, string[]>
+  >({});
   const router = useRouter();
+  // const dispatch = useDispatch();
+  const text = useSelector(
+    (state: { language: { set_text: string } }) => state.language.set_text
+  );
 
   useEffect(() => {
     fetch("https://assignment.devotel.io/api/insurance/forms")
@@ -266,7 +287,64 @@ export default function DynamicInsuranceForm({ formId }: DynamicInsuranceFormPro
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast.success("Application submitted successfully!", { position: "top-center", theme: "colored" });
+
+    const errors: string[] = [];
+
+    const validateField = (field: FieldType) => {
+      if (field.type === "group" && field.fields) {
+        field.fields.forEach(validateField);
+        return;
+      }
+
+      const value = formValues[field.id];
+
+      // Only apply 'required' check to text fields
+      if (field.type === "text" && field.required && (!value || value === "")) {
+        errors.push(`${field.label} is required.`);
+      }
+
+      // Pattern check
+      if (field.validation?.pattern && typeof value === "string") {
+        const regex = new RegExp(field.validation.pattern);
+        if (!regex.test(value)) {
+          errors.push(`${field.label} is invalid.`);
+        }
+      }
+
+      // Min/Max for number/date
+      if ((field.type === "number" || field.type === "date") && value) {
+        const val =
+          field.type === "number"
+            ? Number(value)
+            : new Date(value as string).getTime();
+
+        if (field.validation?.min !== undefined && val < field.validation.min) {
+          errors.push(
+            `${field.label} must be at least ${field.validation.min}.`
+          );
+        }
+
+        if (field.validation?.max !== undefined && val > field.validation.max) {
+          errors.push(
+            `${field.label} must be at most ${field.validation.max}.`
+          );
+        }
+      }
+    };
+
+    form?.fields.forEach(validateField);
+
+    if (errors.length > 0) {
+      errors.forEach((msg) =>
+        toast.error(msg, { position: "top-center", theme: "colored" })
+      );
+      return;
+    }
+
+    toast.success("Application submitted successfully!", {
+      position: "top-center",
+      theme: "colored",
+    });
     router.push("/applications");
   };
 
@@ -291,7 +369,7 @@ export default function DynamicInsuranceForm({ formId }: DynamicInsuranceFormPro
         />
       ))}
       <button type="submit" style={{ marginTop: 20, padding: "8px 16px" }}>
-        Submit
+        {text}
       </button>
     </form>
   );

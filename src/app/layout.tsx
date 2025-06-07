@@ -4,6 +4,8 @@ import "./globals.css";
 import ThemeToggle from "../../components/ThemeToggle";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import SwitchLanguage from "../../components/SwitchLanguage";
+import { Providers } from "../../redux/providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,10 +30,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {/* Dark/light toggle button */}
-        <ThemeToggle />
-        {children}
-        <ToastContainer />
+        <Providers>
+          {/* Dark/light toggle button */}
+          <section id="features-toggle">
+            <div>
+              <SwitchLanguage />
+            </div>
+              <ThemeToggle />
+            <div>
+            </div>
+          </section>
+          {children}
+          <ToastContainer />
+        </Providers>
       </body>
     </html>
   );

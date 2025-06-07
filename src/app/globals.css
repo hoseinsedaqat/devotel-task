@@ -208,3 +208,11 @@ a {
   /* align-items: center; */
   height: 100vh;
 }
+
+#features-toggle{
+  width: 100% !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1rem 0;
+}
