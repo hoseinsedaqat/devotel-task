@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from 'next/image';
+import Spinner_img from "../public/Spinner_img.gif";
 
 type FieldType = {
   id: string;
@@ -338,7 +340,9 @@ export default function DynamicInsuranceForm({ formId }: DynamicInsuranceFormPro
     });
   }, [form, formValues]);
 
-  if (!form) return <p>Loading or form not found...</p>;
+  if (!form) return <p className="spinner-loading">
+    <Image src={Spinner_img} alt="Loading..." width={70} height={70} />
+  </p>;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();

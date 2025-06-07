@@ -201,3 +201,10 @@ button:focus,a:focus {
 a {
   text-decoration: none;
 }
+
+.spinner-loading {
+  display: flex;
+  justify-content: center;
+  /* align-items: center; */
+  height: 100vh;
+}
